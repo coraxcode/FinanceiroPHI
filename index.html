@@ -368,6 +368,27 @@
     .payRow{grid-template-columns: 1fr;}
     .payPct{white-space:normal}
   }
+  @media (max-width: 980px){
+  /* Só no mobile/tablet: rolagem horizontal nas tabelas de Cadastros */
+  .panel.compact .tablewrap{
+    overflow-x: auto !important;
+    overflow-y: hidden !important;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+  }
+
+  /* FORÇA overflow: a tabela precisa ser mais larga que a tela */
+  .panel.compact .tablewrap > table{
+    min-width: 720px;            /* ajuste: 680~860 se quiser mais/menos */
+    width: max-content;
+  }
+
+  /* Dá espaço real para os botões (Editar/Excluir) */
+  .panel.compact .actionsCell{
+    min-width: 92px;
+  }
+}
+
 </style>
 </head>
 <body>
