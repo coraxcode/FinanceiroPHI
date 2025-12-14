@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
 <meta http-equiv="Content-Security-Policy"
       content="default-src 'self' data: blob:;
                img-src 'self' data: blob:;
@@ -11,7 +11,8 @@
                base-uri 'none';
                object-src 'none';
                frame-ancestors 'none'">
-<title>Financeiro Φ — KISS • BigInt (centavos) • 3 gráficos</title>
+<title>Financeiro Φ — KISS • BigInt (centavos) • 4 gráficos</title>
+
 <style>
   :root{
     color-scheme: dark;
@@ -21,22 +22,24 @@
     --good:#9ff5c8; --bad:#ff9fa8; --warn:#ffd69f;
     --r:14px; --gap:14px; --pad:14px;
 
-    /* Cards: mínimo 10px + φ no eixo horizontal (premium, sem colar) */
     --cardPadY: clamp(10px, 0.9vw, 12px);
     --cardPadX: calc(var(--cardPadY) * var(--phi));
 
-    /* TABELAS (harmonia) */
     --cellY: clamp(8px, 0.9vw, 10px);
     --cellX: clamp(10px, 1.1vw, 12px);
   }
+
   *{box-sizing:border-box}
   html,body{height:100%}
+  html{-webkit-text-size-adjust:100%}
   body{
     margin:0;
     font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial;
     background:radial-gradient(1200px 700px at 10% 0%, #152040 0%, var(--bg) 55%);
-    color:var(--text)
+    color:var(--text);
+    text-rendering:optimizeLegibility;
   }
+
   header{
     display:flex;gap:var(--gap);align-items:center;justify-content:space-between;flex-wrap:wrap;
     padding:16px clamp(14px,2vw,22px);border-bottom:1px solid var(--line);
@@ -45,13 +48,24 @@
   .logo{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;background:linear-gradient(135deg,#2a4cff,#8b5cff);font-weight:900}
   .brand h1{margin:0;font-size:16px}
   .brand p{margin:2px 0 0;color:var(--muted);font-size:12px}
+
   .actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
   .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--muted);font-size:12px}
   .badge.good{color:var(--good);border-color:rgba(159,245,200,.25)}
   .badge.warn{color:var(--warn);border-color:rgba(255,214,159,.25)}
   .badge.bad{color:var(--bad);border-color:rgba(255,159,168,.25)}
 
-  .btn{border:1px solid var(--line);background:rgba(255,255,255,.06);color:var(--text);padding:10px 12px;border-radius:14px;cursor:pointer;font-weight:750}
+  .btn{
+    border:1px solid var(--line);
+    background:rgba(255,255,255,.06);
+    color:var(--text);
+    padding:10px 12px;
+    border-radius:14px;
+    cursor:pointer;
+    font-weight:750;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
+  }
   .btn:hover{filter:brightness(1.05)}
   .btn.primary{background:linear-gradient(135deg,#2a4cff,#8b5cff);border-color:rgba(255,255,255,.18)}
   .btn.danger{background:rgba(255,80,100,.12);border-color:rgba(255,80,100,.25)}
@@ -61,10 +75,11 @@
 
   main{
     width:min(1220px,100%);margin:0 auto;padding:clamp(14px,2vw,22px);
-    display:grid;grid-template-columns:var(--main) var(--side);gap:var(--gap); /* φ: 61,8 / 38,2 */
+    display:grid;grid-template-columns:var(--main) var(--side);gap:var(--gap);
   }
   .panel{
-    border:1px solid var(--line);border-radius:calc(var(--r)*(var(--phi)-.2));
+    border:1px solid var(--line);
+    border-radius:calc(var(--r)*(var(--phi)-.2));
     background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.02));
     padding:calc(var(--pad)*var(--phi));
     overflow:hidden;
@@ -75,7 +90,6 @@
   .field{display:flex;flex-direction:column;gap:6px;flex:1;min-width:140px}
   .field span{color:var(--muted);font-size:12px}
 
-  /* deixa “Cadastros” mais junto (sem espaço exagerado) */
   .panel.compact .row{gap:8px}
   .panel.compact .btn.small{padding:6px 9px}
   .panel.compact .btn.small.primary{border-radius:11px}
@@ -88,6 +102,9 @@
     padding:10px 12px;
     color:var(--text);
     outline:none;
+    font-variant-numeric:tabular-nums;
+    line-height:1.2;
+    caret-color:var(--text);
   }
   textarea{min-height:92px;resize:none}
   input:focus,select:focus,textarea:focus{border-color:rgba(138,165,255,.55)}
@@ -99,12 +116,11 @@
   input[type=number]::-webkit-outer-spin-button,
   input[type=number]::-webkit-inner-spin-button{appearance:none;margin:0}
 
-  /* KPI cards */
   .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:var(--gap)}
   .card{
     border:1px solid var(--line);border-radius:var(--r);
     background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.03));
-    padding: var(--cardPadY) var(--cardPadX); /* mínimo 10px + φ */
+    padding: var(--cardPadY) var(--cardPadX);
     min-width:0;
     display:flex;flex-direction:column;gap:8px;
   }
@@ -115,24 +131,30 @@
 
   canvas{
     width:100%;
-    height:210px; /* impede o canvas de “crescer para baixo” no zoom */
+    height:210px;
     border-radius:14px;
     border:1px solid var(--line);
     background:rgba(0,0,0,.14);
     display:block;
   }
 
-  /* 3 gráficos */
   .gridCharts{display:grid;grid-template-columns:1fr 1fr;gap:var(--gap)}
   .span2{grid-column:1/-1}
 
+  .subCharts{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:var(--gap);
+    align-items:start;
+  }
+  .subCharts .muted{margin-bottom:8px}
+  .subCharts > div{min-width:0}
+
   .statsBlock{margin-top:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,.10);}
 
-  /* colapsar/expandir */
   #panelCharts.collapsed #chartsBody{display:none;}
   #panelCharts.collapsed{padding-bottom:calc(var(--pad)*var(--phi));}
 
-  /* INSIGHTS */
   .insightsGrid{
     display:grid;
     grid-template-columns:repeat(4,1fr);
@@ -194,7 +216,6 @@
   .insCard.purple .fill{background:rgba(191,166,255,.60)}
   .insWide{grid-column:1/-1}
 
-  /* barras “Despesas por forma de pagamento” (elegante) */
   .payBars{display:flex;flex-direction:column;gap:10px;margin-top:8px}
   .payRow{
     display:grid;
@@ -217,7 +238,6 @@
     font-variant-numeric:tabular-nums;
     white-space:nowrap;
   }
-  /* cores discretas por método (só visual) */
   .pm-pix   .payFill{background:rgba(42,76,255,.65)}
   .pm-cash  .payFill{background:rgba(159,245,200,.60)}
   .pm-debit .payFill{background:rgba(255,214,159,.65)}
@@ -237,7 +257,6 @@
   .topRow .meta{font-size:12px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;align-items:center;min-width:0;}
   .topRow .track{margin-top:0}
 
-  /* TABELAS */
   .tablewrap{overflow:hidden;border-radius:14px;border:1px solid var(--line);background:rgba(0,0,0,.12);margin-top:10px;}
   table{width:100%;border-collapse:collapse;table-layout:fixed;}
   th,td{
@@ -281,12 +300,12 @@
   .pill.purple{color:#bfa6ff;border-color:rgba(191,166,255,.28)}
 
   td.statusCell .pill{
-   display:inline-block;
-   max-width:100%;
-   overflow:hidden;
-   text-overflow:ellipsis;
-   white-space:nowrap;
-   vertical-align:middle;
+    display:inline-block;
+    max-width:100%;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    vertical-align:middle;
   }
 
   td.statusCell, td.activeCell{overflow:visible;text-overflow:clip;}
@@ -295,6 +314,8 @@
     border-radius:12px;border:1px solid var(--line);
     background:rgba(255,255,255,.06);color:var(--text);
     cursor:pointer;font-weight:900;padding:0;
+    touch-action:manipulation;
+    -webkit-tap-highlight-color:transparent;
   }
   .iconbtn:hover{filter:brightness(1.05)}
   .iconbtn.danger{background:rgba(255,80,100,.12);border-color:rgba(255,80,100,.25)}
@@ -312,7 +333,6 @@
   .noteLine.warn{color:var(--warn)}
   .noteLine.good{color:var(--good)}
 
-  /* Alert list */
   .alist{display:flex;flex-direction:column;gap:10px;margin-top:10px}
   .aitem{border:1px solid rgba(255,255,255,.10);border-radius:14px;background:rgba(0,0,0,.12);padding:10px 12px;}
   .aitem .top{display:flex;justify-content:space-between;gap:10px;align-items:flex-start}
@@ -322,7 +342,11 @@
   dialog{
     border:1px solid var(--line);border-radius:18px;
     background:linear-gradient(180deg,rgba(20,24,36,.98),rgba(12,14,20,.98));
-    color:var(--text);width:min(680px,calc(100vw - 24px));
+    color:var(--text);
+    width:min(680px,calc(100vw - 24px));
+    max-height:calc(100vh - 24px);
+    overflow:auto;
+    overscroll-behavior:contain;
   }
   dialog::backdrop{background:rgba(0,0,0,.55)}
   .dlghead{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:10px}
@@ -334,7 +358,6 @@
   .hr{height:1px;background:var(--line);margin:12px 0}
   .err{color:var(--bad);font-size:12px;margin:10px 0 0}
 
-  /* Peek dialog */
   #peekDlg{width:min(560px,calc(100vw - 24px))}
   .peekBox{
     border:1px solid var(--line);
@@ -352,53 +375,101 @@
     .cards{grid-template-columns:repeat(2,1fr)}
     .gridCharts{grid-template-columns:1fr}
     .span2{grid-column:auto}
+    .subCharts{grid-template-columns:1fr}
     .insightsGrid{grid-template-columns:repeat(2,1fr)}
     .payRow{grid-template-columns: 100px 1fr auto;}
-	main > aside{ order:-1; }
-	main > section{ order:0; }
+    main > aside{ order:-1; }
+    main > section{ order:0; }
   }
+
+  /* ===== Mobile Ultra Profissional ===== */
+  @media (max-width:720px){
+    header{padding:14px 14px;gap:12px}
+    .brand{min-width:0; width:100%;}
+    .brand h1{font-size:15px}
+    .brand p{font-size:12px; line-height:1.25}
+
+    /* IMPORTANTÍSSIMO: evita “zoom” ao focar inputs no iOS (fonte >= 16px) */
+    input,select,textarea{font-size:16px}
+
+    .actions{
+      width:100%;
+      flex-wrap:nowrap;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      padding-bottom:6px;
+      gap:10px;
+      scroll-snap-type:x mandatory;
+    }
+    .actions > *{scroll-snap-align:start}
+    .btn{padding:10px 12px; border-radius:14px}
+    .btn.small{padding:8px 10px}
+    .badge{flex:0 0 auto}
+
+    main{padding:14px;gap:12px}
+    .panel{padding:calc(var(--pad)*1.22);border-radius:18px}
+    .cards{grid-template-columns:1fr;gap:12px}
+    .value{font-size:22px}
+    canvas{height:200px}
+
+    .panel.compact .row[style*="margin:0"]{
+      flex-wrap:nowrap;
+      overflow-x:auto;
+      -webkit-overflow-scrolling:touch;
+      padding-bottom:6px;
+      gap:10px;
+    }
+    .panel.compact .row[style*="margin:0"] .btn{flex:0 0 auto}
+
+    .tablewrap{
+      overflow-x:auto !important;
+      overflow-y:hidden !important;
+      -webkit-overflow-scrolling:touch;
+      max-width:100%;
+    }
+    .tablewrap > table{
+      min-width: 720px;
+      width:max-content;
+    }
+    .actionsCell{min-width: 96px}
+    th,td{font-size:12.5px}
+    .iconbtn{width:34px;height:34px;border-radius:12px}
+
+    dialog{
+      width:calc(100vw - 16px);
+      max-height:calc(100dvh - 16px);
+      margin:0;
+      border-radius:18px;
+    }
+    .dlgactions{
+      position:sticky;
+      bottom:0;
+      background:linear-gradient(180deg, rgba(12,14,20,.35), rgba(12,14,20,.98));
+      padding-top:10px;
+      padding-bottom:10px;
+      border-top:1px solid rgba(255,255,255,.08);
+    }
+  }
+
   @media (max-width:520px){
-    .cards{grid-template-columns:1fr}
-    th,td{padding:9px 10px;font-size:12.5px}
-    .iconbtn{width:32px;height:32px;border-radius:11px}
-    .panel.compact .btn.small{padding:6px 8px}
+    th,td{padding:9px 10px}
+    .panel.compact .btn.small{padding:7px 10px}
     .insightsGrid{grid-template-columns:1fr}
     .insHead{grid-template-columns:1fr;}
     .insTag{justify-self:start; text-align:left;}
     .payRow{grid-template-columns: 1fr;}
     .payPct{white-space:normal}
   }
-  @media (max-width: 980px){
-  /* Só no mobile/tablet: rolagem horizontal nas tabelas de Cadastros */
-  .panel.compact .tablewrap{
-    overflow-x: auto !important;
-    overflow-y: hidden !important;
-    -webkit-overflow-scrolling: touch;
-    max-width: 100%;
-  }
-
-  /* FORÇA overflow: a tabela precisa ser mais larga que a tela */
-  .panel.compact .tablewrap > table{
-    min-width: 720px;            /* ajuste: 680~860 se quiser mais/menos */
-    width: max-content;
-  }
-
-  /* Dá espaço real para os botões (Editar/Excluir) */
-  .panel.compact .actionsCell{
-    min-width: 92px;
-  }
-}
-
 </style>
 </head>
-<body>
 
+<body>
 <header>
   <div class="brand">
     <div class="logo">Φ</div>
     <div>
       <h1>Financeiro Φ — KISS</h1>
-      <p>BigInt (centavos) • Precisão extrema • 3 gráficos • Layout φ=1,618</p>
+      <p>BigInt (centavos) • Precisão extrema • 4 gráficos • Layout φ=1,618</p>
     </div>
   </div>
   <div class="actions">
@@ -438,7 +509,7 @@
 
     <div class="panel" id="panelCharts" style="margin-top:var(--gap)">
       <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
-        <h2 style="margin:0">Gráficos (3)</h2>
+        <h2 style="margin:0">Gráficos (4)</h2>
         <button class="btn small secondary" id="btnToggleCharts" type="button" aria-expanded="true">
           Minimizar
         </button>
@@ -447,8 +518,17 @@
       <div id="chartsBody">
         <div class="gridCharts">
           <div>
-            <div class="muted" style="font-size:12px;margin-bottom:8px">2 colunas: Entrada vs Saída (despesas + aportes que impactam saldo)</div>
-            <canvas id="chartBars" height="210"></canvas>
+            <div class="muted" style="font-size:12px;margin-bottom:8px">Visão de caixa: Entrada vs Saída (despesas + aportes que impactam) + Entradas Extras</div>
+            <div class="subCharts">
+              <div>
+                <div class="muted" style="font-size:12px;margin-bottom:8px">Entrada total vs Saída total</div>
+                <canvas id="chartBarsMain" height="210"></canvas>
+              </div>
+              <div>
+                <div class="muted" style="font-size:12px;margin-bottom:8px">Base vs Entradas Extras</div>
+                <canvas id="chartBarsExtra" height="210"></canvas>
+              </div>
+            </div>
           </div>
 
           <div>
@@ -464,7 +544,7 @@
 
         <div class="statsBlock">
           <div class="muted" style="font-size:12px;margin-bottom:8px">
-            Insights do mês (percentuais com 2 casas, BigInt e arredondamento half-up)
+            Insights do mês (percentuais com 2 casas, BigInt e arredondamento half-up) • Auditoria interna de consistência (sem floats)
           </div>
           <div id="chartStats"></div>
           <div id="chartTop"></div>
@@ -879,8 +959,13 @@ function attachMoneyMask(el){
   const onInput=()=>{
     const formatted = formatMoneyLivePtBR(el.value);
     if(el.value!==formatted){
+      const wasAtEnd = (()=>{ try{ return el.selectionStart===el.value.length; }catch{return true;} })();
       el.value=formatted;
-      try{ el.setSelectionRange(el.value.length, el.value.length); }catch{}
+      // Mantém o caret estável (no mobile isso evita “perder” o dígito digitado)
+      try{
+        const pos = wasAtEnd ? el.value.length : Math.min(el.value.length, el.selectionStart||el.value.length);
+        el.setSelectionRange(pos, pos);
+      }catch{}
     }
   };
   const onBlur=()=>{ el.value = normalizeMoneyBlurPtBR(el.value); };
@@ -928,7 +1013,6 @@ function normalizeDB(x){
     reserves: Array.isArray(d.reserves) ? d.reserves : []
   };
 
-  /* hard caps anti-import gigantes (robustez + performance) */
   out.goals   = out.goals.slice(0, 1000);
   out.incomes = out.incomes.slice(0, 20000);
   out.expenses= out.expenses.slice(0, 20000);
@@ -1027,6 +1111,68 @@ function saveDB(){
     alert("Não foi possível salvar no armazenamento local (quota/privacidade). Exporte o JSON para backup.");
     return false;
   }
+}
+
+/* ---------- Auditoria de Precisão (sem floats) ---------- */
+function auditCurrentMonth(cur){
+  const issues=[];
+
+  const base2 = bi(db.profile.salaryCents) + bi(db.profile.extraCents);
+
+  let inExtra2=0n;
+  for(const it of db.incomes){
+    if(monthKey(it.date)===cur.month) inExtra2 += bi(it.amountCents);
+  }
+
+  let outDesp2=0n;
+  for(const e of db.expenses){
+    if(monthKey(e.date)===cur.month) outDesp2 += bi(e.amountCents);
+  }
+
+  let outResImp2=0n, outResNo2=0n;
+  for(const r of db.reserves){
+    if(monthKey(r.date)!==cur.month) continue;
+    const v=bi(r.amountCents);
+    if(r.impactCashflow===false) outResNo2 += v;
+    else outResImp2 += v;
+  }
+
+  const income2 = base2 + inExtra2;
+  const outTotal2 = outDesp2 + outResImp2;
+  const remain2 = income2 - outTotal2;
+
+  if(cur.base !== base2) issues.push("Base do perfil inconsistente.");
+  if(cur.inExtra !== inExtra2) issues.push("Somatório de entradas extras inconsistente.");
+  if(cur.outDespesas !== outDesp2) issues.push("Somatório de despesas inconsistente.");
+  if(cur.outResImpact !== outResImp2) issues.push("Somatório de aportes (impactam) inconsistente.");
+  if(cur.outResNoImpact !== outResNo2) issues.push("Somatório de aportes (não impactam) inconsistente.");
+
+  if(cur.income !== income2) issues.push("Invariante: income != base + extras.");
+  if(cur.outTotal !== outTotal2) issues.push("Invariante: outTotal != despesas + aportes-impacto.");
+  if(cur.remain !== remain2) issues.push("Invariante: remain != income - outTotal.");
+
+  const rt = [
+    ["salary", db.profile.salaryCents],
+    ["extra", db.profile.extraCents],
+    ["resStart", db.profile.resStartCents]
+  ];
+  for(const [name, centsStr] of rt){
+    const v=bi(centsStr);
+    const s=centsToInput(v);
+    const back=parseMoneyToCentsBI(s);
+    if(back===null || back!==v) issues.push(`Round-trip dinheiro falhou no perfil (${name}).`);
+  }
+
+  if(!/^\d{4}-\d{2}$/.test(cur.month||"")) issues.push("Mês selecionado inválido (YYYY-MM).");
+
+  const hint=$("healthHint");
+  if(issues.length){
+    setState("Auditoria: atenção","warn");
+    hint.textContent = `Auditoria: ${issues.length} alerta(s). Revise import/valores. Detalhes no console.`;
+    console.warn("[AUDIT] Inconsistências detectadas:", issues, {cur});
+  }
+
+  return {ok: issues.length===0, issues};
 }
 
 /* ---------- Toggle Gráficos ---------- */
@@ -1246,8 +1392,17 @@ $("fileImport").addEventListener("change",(ev)=>{
     try{
       const parsed=JSON.parse(String(r.result));
       db=normalizeDB(parsed);
-      setState("Importado","ok"); saveDB(); renderAll();
-      alert("Importado com sucesso.");
+      setState("Importado","ok");
+      saveDB();
+      renderAll();
+
+      const cur=compute(db.state.month);
+      const a=auditCurrentMonth(cur);
+      if(!a.ok){
+        alert("Importado com sucesso, mas a auditoria encontrou inconsistências. Veja o console para detalhes.");
+      }else{
+        alert("Importado com sucesso.");
+      }
     }catch(err){
       console.error(err);
       alert("JSON inválido/incompatível.");
@@ -1293,7 +1448,6 @@ function buildTxt(cur){
   lines.push(`Aportes (impactam saldo): ${fmtBRL(cur.outResImpact)} (${fmtPct2(resImpactBps)} da entrada)`);
   if(cur.outResNoImpact>0n) lines.push(`Aportes (não impactam saldo): ${fmtBRL(cur.outResNoImpact)}`);
   lines.push(`Saída total (despesas + aportes que impactam): ${fmtBRL(cur.outTotal)} (${fmtPct2(outBps)} da entrada)`);
-  /* IMPORTANTE: saldo negativo agora aparece com sinal “-” */
   lines.push(cur.remain>=0n ? `Saldo restante: ${fmtBRL(cur.remain)} (possível guardar)` : `Saldo restante: ${fmtBRL(cur.remain)} (vai faltar)`);
   lines.push(`Essencial / Despesas: ${fmtPct2(essBps)} (Essencial ${fmtBRL(cur.essential.sum)} | Não essencial ${fmtBRL(cur.essential.non)})`);
   lines.push("");
@@ -1411,6 +1565,18 @@ const dlgMsg=$("dlgMsg");
 const btnDelete=$("btnDelete");
 $("btnCloseDlg").addEventListener("click", ()=>dlg.close());
 $("btnCancel").addEventListener("click", ()=>dlg.close());
+
+/* Mobile: garante que o campo focado fique visível (evita “não ver o número digitando”) */
+dlg.addEventListener("focusin", (ev)=>{
+  try{
+    if(!window.matchMedia || !window.matchMedia("(max-width:720px)").matches) return;
+    const el = ev.target;
+    if(!(el instanceof HTMLElement)) return;
+    if(el.matches("input,select,textarea")){
+      el.scrollIntoView({block:"center", inline:"nearest", behavior:"smooth"});
+    }
+  }catch{}
+});
 
 /* Peek dialog */
 const peekDlg=$("peekDlg");
@@ -1532,7 +1698,7 @@ function openDlg(type, id=null){
     html += fieldInput({id:"f_date",label:"Data",type:"date",value:it.date||todayISO()});
     html += fieldInput({id:"f_name",label:"Nome",value:it.name,placeholder:"ex.: Freelance"});
     html += fieldInput({id:"f_amount",label:"Valor (R$)",value:centsToInput(bi(it.amountCents)),placeholder:"ex.: 350,00",attrs:{'data-money':"1",inputmode:"decimal"}});
-    html += fieldInput({id:"f_percent",label:"% (opcional)",type:"number",value:String(it.percent||0),placeholder:"ex.: 10"});
+    html += fieldInput({id:"f_percent",label:"% (opcional)",type:"number",value:String(it.percent||0),placeholder:"ex.: 10",attrs:{step:"0.01", inputmode:"decimal"}});
     html += fieldTextArea({id:"f_note",label:"Observação (opcional)",value:it.note,placeholder:"máx. 160 caracteres"});
   }
   else if(type==="expense"){
@@ -1910,7 +2076,13 @@ function renderDue(cur){
   }
 
   const hint=$("healthHint");
-  hint.textContent = `Hoje: ${today} • Alertas consideram somente “Em aberto” (e ignoram “Sem vencimento”).`;
+  const prev = hint.textContent || "";
+  const baseMsg = `Hoje: ${today} • Alertas consideram somente “Em aberto” (e ignoram “Sem vencimento”).`;
+  if(prev.startsWith("Auditoria:")){
+    hint.textContent = `${prev} • ${baseMsg}`;
+  }else{
+    hint.textContent = baseMsg;
+  }
 }
 
 /* ---------- Charts (Canvas puro) ---------- */
@@ -1926,8 +2098,37 @@ function resizeCanvasToDisplaySize(c){
   return false;
 }
 
-function drawBars(cur){
-  const c=$("chartBars"); if(!c) return;
+/* ===== BUGFIX (Desktop): evita números “embaralhados” no gráfico =====
+   Solução: desenhar textos centralizados em cada barra + ajustar tamanho/ellipsis para caber
+*/
+function ellipsize(ctx, text, maxWidth){
+  const s=String(text);
+  if(ctx.measureText(s).width<=maxWidth) return s;
+  const ell="…";
+  let lo=0, hi=s.length;
+  while(lo<hi){
+    const mid=Math.ceil((lo+hi)/2);
+    const t=s.slice(0,mid)+ell;
+    if(ctx.measureText(t).width<=maxWidth) lo=mid;
+    else hi=mid-1;
+  }
+  return s.slice(0,Math.max(0,lo))+ell;
+}
+function drawFittedText(ctx, text, x, y, maxWidth, basePx=12, minPx=9, weight=900, align="center"){
+  ctx.textAlign=align;
+  ctx.textBaseline="alphabetic";
+  let px=basePx;
+  ctx.font=`${weight} ${px}px system-ui`;
+  while(px>minPx && ctx.measureText(String(text)).width>maxWidth){
+    px--;
+    ctx.font=`${weight} ${px}px system-ui`;
+  }
+  const out = ctx.measureText(String(text)).width>maxWidth ? ellipsize(ctx, text, maxWidth) : String(text);
+  ctx.fillText(out, x, y);
+}
+
+function drawBarsMain(cur){
+  const c=$("chartBarsMain"); if(!c) return;
   resizeCanvasToDisplaySize(c);
   const ctx=c.getContext("2d");
   const W=c.width, H=c.height;
@@ -1949,8 +2150,8 @@ function drawBars(cur){
   ctx.lineTo(x1,y1);
   ctx.stroke();
 
-  const barW = (x1-x0) * 0.22;
-  const gap = (x1-x0) * 0.18;
+  const barW = (x1-x0) * 0.26;
+  const gap = (x1-x0) * 0.14;
   const bx1 = x0 + gap;
   const bx2 = bx1 + barW + gap;
 
@@ -1962,20 +2163,94 @@ function drawBars(cur){
     ctx.fillRect(x, y, barW, h);
     ctx.fillStyle="rgba(0,0,0,.25)";
     ctx.fillRect(x, y, barW, 2);
+    return {topY:y, h};
   }
 
-  bar(bx1, inV, "rgba(42,76,255,.70)");
-  bar(bx2, outV, "rgba(255,159,168,.65)");
+  const b1=bar(bx1, inV, "rgba(42,76,255,.70)");
+  const b2=bar(bx2, outV, "rgba(255,159,168,.65)");
 
-  ctx.fillStyle="rgba(255,255,255,.70)";
+  const c1=bx1+barW/2;
+  const c2=bx2+barW/2;
+
+  // Labels (embaixo) - centralizados
+  ctx.fillStyle="rgba(255,255,255,.72)";
+  drawFittedText(ctx,"Entrada",c1, y1+14, barW, 12, 10, 800, "center");
+  drawFittedText(ctx,"Saída",  c2, y1+14, barW, 12, 10, 800, "center");
+
+  // Values (acima de cada barra) - centralizados e ajustados
+  ctx.fillStyle="rgba(255,255,255,.92)";
+  const maxTextW = Math.max(10, barW + gap*0.85);
+  const yVal1 = Math.max(y0+14, b1.topY-8);
+  const yVal2 = Math.max(y0+14, b2.topY-8);
+  drawFittedText(ctx, fmtBRL(inV),  c1, yVal1, maxTextW, 12, 9, 900, "center");
+  drawFittedText(ctx, fmtBRL(outV), c2, yVal2, maxTextW, 12, 9, 900, "center");
+}
+
+function drawBarsExtra(cur){
+  const c=$("chartBarsExtra"); if(!c) return;
+  resizeCanvasToDisplaySize(c);
+  const ctx=c.getContext("2d");
+  const W=c.width, H=c.height;
+  ctx.clearRect(0,0,W,H);
+
+  const pad=18;
+  const x0=pad, x1=W-pad;
+  const y0=pad, y1=H-pad;
+
+  const baseV=cur.base;
+  const extraV=cur.inExtra;
+
+  const max = (baseV>extraV?baseV:extraV);
+  const spanH = (y1-y0);
+
+  ctx.strokeStyle="rgba(255,255,255,.15)";
+  ctx.lineWidth=2;
+  ctx.beginPath();
+  ctx.moveTo(x0,y1);
+  ctx.lineTo(x1,y1);
+  ctx.stroke();
+
+  const barW = (x1-x0) * 0.26;
+  const gap = (x1-x0) * 0.14;
+  const bx1 = x0 + gap;
+  const bx2 = bx1 + barW + gap;
+
+  function bar(x, v, fill){
+    const frac = max>0n ? fracFloatBI(v, max) : 0;
+    const h = Math.max(0, Math.round(frac * spanH));
+    const y = y1 - h;
+    ctx.fillStyle=fill;
+    ctx.fillRect(x, y, barW, h);
+    ctx.fillStyle="rgba(0,0,0,.25)";
+    ctx.fillRect(x, y, barW, 2);
+    return {topY:y, h};
+  }
+
+  const b1=bar(bx1, baseV, "rgba(255,255,255,.45)");
+  const b2=bar(bx2, extraV, "rgba(191,166,255,.75)");
+
+  const c1=bx1+barW/2;
+  const c2=bx2+barW/2;
+
+  ctx.fillStyle="rgba(255,255,255,.72)";
+  drawFittedText(ctx,"Base",  c1, y1+14, barW, 12, 10, 800, "center");
+  drawFittedText(ctx,"Extras",c2, y1+14, barW, 12, 10, 800, "center");
+
+  ctx.fillStyle="rgba(255,255,255,.92)";
+  const maxTextW = Math.max(10, barW + gap*0.85);
+  drawFittedText(ctx, fmtBRL(baseV),  c1, Math.max(y0+14, b1.topY-8), maxTextW, 12, 9, 900, "center");
+  drawFittedText(ctx, fmtBRL(extraV), c2, Math.max(y0+14, b2.topY-8), maxTextW, 12, 9, 900, "center");
+
+  const total = baseV + extraV;
+  ctx.fillStyle="rgba(255,255,255,.65)";
+  ctx.textAlign="left";
   ctx.font="bold 12px system-ui";
-  ctx.fillText("Entrada", bx1, y1+14);
-  ctx.fillText("Saída", bx2, y1+14);
-
-  ctx.fillStyle="rgba(255,255,255,.90)";
-  ctx.font="900 12px system-ui";
-  ctx.fillText(fmtBRL(inV), bx1, y0+10);
-  ctx.fillText(fmtBRL(outV), bx2, y0+10);
+  if(total>0n && extraV>0n){
+    const bps = pctBpsBI(extraV, total);
+    ctx.fillText(`Extras: ${fmtPct2(bps)} da entrada`, x0, y1-6);
+  }else{
+    ctx.fillText("Sem entradas extras no mês.", x0, y1-6);
+  }
 }
 
 function drawPie(cur){
@@ -2023,7 +2298,6 @@ function drawPie(cur){
     ang=a2;
   });
 
-  // Legend
   const lx=W*0.62, ly=20;
   ctx.font="bold 12px system-ui";
   ctx.fillStyle="rgba(255,255,255,.80)";
@@ -2080,11 +2354,9 @@ function drawResTypes(cur){
     ctx.fillStyle=cols[i];
     ctx.fillRect(x,y,barW,h);
     ctx.fillStyle="rgba(255,255,255,.75)";
-    ctx.font="bold 12px system-ui";
-    ctx.fillText(labels[i], x, y1+14);
+    drawFittedText(ctx, labels[i], x+barW/2, y1+14, barW, 12, 10, 800, "center");
     ctx.fillStyle="rgba(255,255,255,.90)";
-    ctx.font="900 12px system-ui";
-    ctx.fillText(fmtBRL(vals[i]), x, y0+10);
+    drawFittedText(ctx, fmtBRL(vals[i]), x+barW/2, Math.max(y0+14, y-8), barW+gap*0.7, 12, 9, 900, "center");
   }
 }
 
@@ -2120,11 +2392,9 @@ function renderInsights(cur){
 
   const remainKind = cur.remain>=0n ? "good" : "bad";
   const remainTitle = cur.remain>=0n ? "Possível guardar" : "Vai faltar";
-  /* IMPORTANTE: quando negativo, mostra o “-” diretamente */
   const remainMain  = fmtBRL(cur.remain);
   const remainTag   = `${fmtPct2(remBps)} da entrada`;
 
-  // Barras por forma de pagamento (despesas)
   const payTotal = cur.outDespesas;
   let payBarsHTML="";
   if(payTotal<=0n){
@@ -2212,7 +2482,6 @@ function renderInsights(cur){
   `;
   $("chartStats").innerHTML = html;
 
-  // Top categorias
   const entries = Array.from(cur.byCat.entries());
   entries.sort((a,b)=>cmpBIDesc(a[1], b[1]));
   const top = entries.slice(0,5);
@@ -2245,7 +2514,7 @@ function renderInsights(cur){
   `;
 }
 
-/* Scheduler */
+/* Scheduler (robusto para zoom/orientation/containers) */
 let chartRAF=0;
 function scheduleCharts(){
   if(db.state.chartsCollapsed) return;
@@ -2253,13 +2522,35 @@ function scheduleCharts(){
   chartRAF=requestAnimationFrame(()=>{
     chartRAF=0;
     const cur=compute(db.state.month);
-    drawBars(cur);
+
+    const a=auditCurrentMonth(cur);
+    if(a.ok){
+      if(($("saveState").textContent||"").startsWith("Auditoria")){
+        setState("Salvo","ok");
+        $("healthHint").textContent = "—";
+      }
+    }
+
+    drawBarsMain(cur);
+    drawBarsExtra(cur);
     drawPie(cur);
     drawResTypes(cur);
     renderInsights(cur);
   });
 }
-window.addEventListener("resize", scheduleCharts);
+window.addEventListener("resize", scheduleCharts, {passive:true});
+window.addEventListener("orientationchange", scheduleCharts, {passive:true});
+if(window.visualViewport){
+  window.visualViewport.addEventListener("resize", scheduleCharts, {passive:true});
+}
+
+/* ResizeObserver: mantém gráficos perfeitos em qualquer layout/zoom */
+let ro=null;
+try{
+  ro=new ResizeObserver(()=>scheduleCharts());
+  const panel=$("panelCharts");
+  if(panel) ro.observe(panel);
+}catch{}
 
 /* ---------- Render all ---------- */
 function renderKPIs(cur){
@@ -2283,7 +2574,6 @@ function renderKPIs(cur){
     remEl.className="value pos";
     hint.textContent="possível guardar";
   }else{
-    /* IMPORTANTE: agora exibe o “-” no valor do saldo restante */
     remEl.textContent=fmtBRL(cur.remain);
     remEl.className="value neg";
     hint.textContent="vai faltar";
@@ -2292,6 +2582,7 @@ function renderKPIs(cur){
 function renderAll(){
   loadProfileUI();
   applyChartsCollapseUI();
+
   const cur=compute(db.state.month);
   renderKPIs(cur);
   renderGoals(cur);
@@ -2303,6 +2594,8 @@ function renderAll(){
   if(!db.state.chartsCollapsed){
     renderInsights(cur);
     scheduleCharts();
+  }else{
+    auditCurrentMonth(cur);
   }
 }
 
@@ -2317,6 +2610,5 @@ $("btnToggleCharts").addEventListener("click", toggleCharts);
   if(!db.state.chartsCollapsed) scheduleCharts();
 })();
 </script>
-
 </body>
 </html>
