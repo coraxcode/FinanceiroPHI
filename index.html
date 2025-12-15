@@ -9,8 +9,7 @@
                style-src 'self' 'unsafe-inline';
                script-src 'self' 'unsafe-inline';
                base-uri 'none';
-               object-src 'none';
-               frame-ancestors 'none'">
+               object-src 'none'">
 <title>Financeiro Φ — KISS • BigInt (centavos) • 4 gráficos</title>
 
 <style>
@@ -835,6 +834,11 @@ const $=id=>document.getElementById(id);
 const pad2=n=>String(n).padStart(2,"0");
 const monthKey=iso=>String(iso||"").slice(0,7);
 const fmtCount2 = n => String(Math.max(0, Number(n||0))).padStart(2,"0");
+function parsePctPtBR(s){
+  const t = String(s ?? "").trim().replace(",", ".");
+  const n = Number(t || "0");
+  return Number.isFinite(n) ? n : NaN;
+}
 // true = houve alterações depois do último IMPORT/EXPORT (ainda não exportou o JSON)
 let jsonDirty = false;
 
@@ -1955,7 +1959,7 @@ dlgForm.addEventListener("submit",(ev)=>{
     const date=$("f_date").value;
     const name=$("f_name").value.trim();
     const amount=parseMoneyToCentsBI($("f_amount").value||"");
-    const percent=Number($("f_percent").value||0);
+    const percent=parsePctPtBR($("f_percent").value);
     const note=$("f_note").value.trim();
 
     if(!mustDate(date)){ dlgMsg.textContent="Data inválida."; return; }
