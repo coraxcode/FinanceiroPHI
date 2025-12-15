@@ -73,6 +73,12 @@ header{
 .brand h1{margin:0;font-size:16px}
 .brand p{margin:2px 0 0;color:var(--muted);font-size:12px}
 
+/* Indicador: alterações não exportadas */
+#jsonSourceLine.dirty{
+  color: var(--bad);
+  font-weight: 900;
+}
+
 .actions{
   display:flex;
   gap:10px;
@@ -488,6 +494,7 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
       <div>
         <h1>Financeiro Φ — KISS</h1>
         <p>BigInt (centavos) • Precisão extrema • 4 gráficos • Layout φ=1,618</p>
+		<p id="jsonSourceLine">Arquivo JSON carregado: (dados locais)</p>
       </div>
     </div>
     <div class="actions">
@@ -518,11 +525,12 @@ dialog::backdrop{background:rgba(0,0,0,.55)}
         <h3>Reserva & Invest (mês)</h3>
         <div class="value" id="kpiRes">R$ 0,00</div>
         <div class="muted" style="font-size:12px" id="kpiResHint">impacta saldo + acumulado</div>
+		<div class="muted" style="font-size:12px" id="kpiResBalHint">Acumulado: R$ 0,00</div>
       </article>
       <article class="card">
         <h3>Saldo Restante</h3>
         <div class="value" id="kpiRemain">R$ 0,00</div>
-        <div class="muted" style="font-size:12px" id="kpiRemainHint">guardar vs devedor</div>
+        <div class="muted" style="font-size:12px" id="kpiRemainHint">Disponível para reserva vs Saldo devedor</div>
       </article>
     </div>
 
@@ -827,6 +835,32 @@ const $=id=>document.getElementById(id);
 const pad2=n=>String(n).padStart(2,"0");
 const monthKey=iso=>String(iso||"").slice(0,7);
 const fmtCount2 = n => String(Math.max(0, Number(n||0))).padStart(2,"0");
+// true = houve alterações depois do último IMPORT/EXPORT (ainda não exportou o JSON)
+let jsonDirty = false;
+
+function setJsonDirty(v){
+  jsonDirty = !!v;
+  updateJsonSourceLine();
+}
+function updateJsonSourceLine(){
+  const el = $("jsonSourceLine");
+  if(!el) return;
+
+  const name = String(db?.meta?.loadedJsonName || "").trim().slice(0, 140);
+
+  const srcText  = name ? `Arquivo JSON carregado: ${name}` : "Arquivo JSON carregado: (dados locais)";
+  const srcTitle = name ? `Origem: ${name}` : "Origem: dados locais (localStorage)";
+
+  if(jsonDirty){
+    el.textContent = `${srcText} — Alterações NÃO salvas no JSON`;
+    el.title = `${srcTitle} • Você mudou algo e ainda não clicou em “Exportar JSON”.`;
+    el.classList.add("dirty");
+  }else{
+    el.textContent = srcText;
+    el.title = srcTitle;
+    el.classList.remove("dirty");
+  }
+}
 
 function uid(){
   try{
@@ -1151,6 +1185,7 @@ function loadDB(){
   }catch{ return DEFAULT_DB(); }
 }
 let db = loadDB();
+updateJsonSourceLine(); // mostra corretamente a origem do JSON ao abrir a página
 
 function setState(text, kind=""){
   const el=$("saveState");
@@ -1245,6 +1280,7 @@ function applyChartsCollapseUI(){
 function toggleCharts(){
   db.state.chartsCollapsed = !db.state.chartsCollapsed;
   setState("Alterado","warn");
+  setJsonDirty(true);
   saveDB();
   applyChartsCollapseUI();
   if(!db.state.chartsCollapsed) scheduleCharts();
@@ -1394,11 +1430,11 @@ $("btnSaveProfile").addEventListener("click", ()=>{
   db.profile.extraCents  = ext<0n? "0" : ext.toString();
   db.profile.resStartCents = rs<0n? "0" : rs.toString();
   db.profile.alertPct = Math.min(100,Math.max(1,Number(pfAlertPct.value||60)));
-  setState("Alterado","warn"); saveDB(); renderAll();
+  setState("Alterado","warn"); setJsonDirty(true); saveDB(); renderAll();
 });
 monthPick.addEventListener("change", ()=>{
   db.state.month=monthPick.value||db.state.month;
-  setState("Alterado","warn"); saveDB(); renderAll();
+  setState("Alterado","warn"); setJsonDirty(true); saveDB(); renderAll();
 });
 $("btnSaveCats").addEventListener("click", ()=>{
   const lines=($("catList").value||"").split(/\r?\n/).map(s=>s.trim()).filter(Boolean);
@@ -1407,7 +1443,7 @@ $("btnSaveCats").addEventListener("click", ()=>{
   if(uniq.length<2){ alert("Inclua pelo menos 2 categorias."); return; }
   if(!uniq.includes("Outros")) uniq.push("Outros");
   db.categories=uniq.slice(0,60);
-  setState("Alterado","warn"); saveDB(); renderAll();
+  setState("Alterado","warn"); setJsonDirty(true); saveDB(); renderAll();
 });
 
 /* ---------- Import / Export / Reset ---------- */
@@ -1431,10 +1467,17 @@ $("btnExport").addEventListener("click", ()=>{
   const exportDate=todayISO();
   const payload = {...db, meta:{...db.meta, exportedAt:new Date().toISOString()}};
   const blob=new Blob([JSON.stringify(payload,null,2)],{type:"application/json"});
-  safeDownloadBlob(`financeiro_phi-${exportDate}.json`, blob);
+  const ok = safeDownloadBlob(`financeiro_phi-${exportDate}.json`, blob);
+
+  if(ok){
+    setJsonDirty(false);      // agora está “salvo no arquivo”
+    setState("Exportado","ok");
+  }
 });
 $("fileImport").addEventListener("change",(ev)=>{
   const f=ev.target.files?.[0]; if(!f) return;
+  const importedFileName = String(f.name || "").slice(0, 140);
+
 
   const MAX_MB=8;
   if(f.size > MAX_MB*1024*1024){
@@ -1448,9 +1491,17 @@ $("fileImport").addEventListener("change",(ev)=>{
     try{
       const parsed=JSON.parse(String(r.result));
       db=normalizeDB(parsed);
+
+      // registra origem (profissional e persistente)
+      db.meta = db.meta || {};
+      db.meta.loadedJsonName = importedFileName;
+      db.meta.loadedJsonAt = new Date().toISOString();
+	  setJsonDirty(false);
+
       setState("Importado","ok");
       saveDB();
       renderAll();
+      updateJsonSourceLine();
 
       const cur=compute(db.state.month);
       const a=auditCurrentMonth(cur);
@@ -1476,6 +1527,7 @@ $("btnReset").addEventListener("click", ()=>{
   if(!confirm("Resetar tudo? Isso apaga dados locais.")) return;
   try{ localStorage.removeItem(STORAGE_KEY); }catch{}
   db=DEFAULT_DB();
+  setJsonDirty(true);
   setState("Resetado","ok"); saveDB(); renderAll();
 });
 
@@ -1503,7 +1555,7 @@ function buildTxt(cur){
   lines.push(`Aportes (impactam saldo): ${fmtBRL(cur.outResImpact)} (${fmtPct2(resImpactBps)} da entrada)`);
   if(cur.outResNoImpact>0n) lines.push(`Aportes (não impactam saldo): ${fmtBRL(cur.outResNoImpact)}`);
   lines.push(`Saída total (despesas + aportes que impactam): ${fmtBRL(cur.outTotal)} (${fmtPct2(outBps)} da entrada)`);
-  lines.push(cur.remain>=0n ? `Saldo restante: ${fmtBRL(cur.remain)} (possível guardar)` : `Saldo restante: ${fmtBRL(cur.remain)} (vai faltar)`);
+  lines.push(cur.remain>=0n ? `Saldo restante: ${fmtBRL(cur.remain)} (Disponível para reserva)` : `Saldo restante: ${fmtBRL(cur.remain)} (Saldo negativo)`);
   lines.push(`Essencial / Despesas: ${fmtPct2(essBps)} (Essencial ${fmtBRL(cur.essential.sum)} | Não essencial ${fmtBRL(cur.essential.non)})`);
   lines.push("");
   lines.push(`Reservas (acumulado até ${month}): ${fmtBRL(cur.resBalance)} (inicial ${fmtBRL(bi(db.profile.resStartCents))} + aportes registrados)`);
@@ -1556,30 +1608,44 @@ function buildTxt(cur){
   lines.push("");
 
   lines.push("METAS");
-  if(!db.goals.length) lines.push("- (sem metas)");
-  const availMonth = (cur.remain>0n) ? cur.remain : 0n;
+	if(!db.goals.length){
+	  lines.push("- (sem metas)");
+	  lines.push("");
+	}else{
+	  const availMonth = (cur.remain > 0n) ? cur.remain : 0n;
 
-  for(const g of [...db.goals].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")))){
-    const target=bi(g.targetCents);
-    const reserved=cur.reservedByGoal.get(g.id)||0n;
-    const miss = target>reserved ? (target-reserved) : 0n;
+	  for(const g of [...db.goals].sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")))){
+		const target  = bi(g.targetCents);
+		const reserved= bi(cur.reservedByGoal.get(g.id) || 0n);
+		const missTotal = (target > reserved) ? (target - reserved) : 0n;
 
-    let statusMonth="";
-    if(target<=0n) statusMonth="Defina custo";
-    else if(miss===0n) statusMonth="Atingida";
-    else{
-      if(availMonth<=0n) statusMonth="Não possível";
-      else statusMonth = (miss<=availMonth) ? "Possível" : "Não possível";
-    }
+		let statusMonth="";
+		if(target<=0n) statusMonth="Defina custo";
+		else if(missTotal===0n) statusMonth="Atingida";
+		else statusMonth = (availMonth>0n && missTotal<=availMonth) ? "Possível" : "Não possível";
 
-    const monthGap = (target>0n && miss>0n) ? ((availMonth>0n && miss>availMonth) ? (miss-availMonth) : (availMonth<=0n ? miss : 0n)) : 0n;
-    const extraGapTxt = (target>0n && miss>0n && monthGap>0n)
-      ? ` | Falta no mês: ${fmtBRL(monthGap)}`
-      : "";
+		// Faltante TOTAL (meta - reservado)
+		const missTotalTxt = fmtBRL(missTotal);
 
-    lines.push(`- ${g.name||"(sem nome)"} | Custo ${fmtBRL(target)} | Reservado ${fmtBRL(reserved)} | Faltante ${fmtBRL(miss)} | Status mês: ${statusMonth}${extraGapTxt} | Ativa: ${g.active?"Sim":"Não"} | Barra: ${g.showInStrip?"Sim":"Não"}${g.note?` | Obs: ${g.note}`:""}`);
-  }
-  lines.push("");
+		// Quanto ainda faltaria "no mês" depois de usar o saldo restante
+		const monthGap =
+		  (missTotal > 0n)
+			? (availMonth > 0n ? (missTotal > availMonth ? (missTotal - availMonth) : 0n) : missTotal)
+			: 0n;
+
+		const monthGapTxt =
+		  (missTotal === 0n) ? "ok"
+		  : (monthGap === 0n) ? "cobre no mês"
+		  : `falta no mês: ${fmtBRL(monthGap)}`;
+
+		lines.push(
+		  `- ${g.name||"(sem nome)"} | Custo ${fmtBRL(target)} | Reservado ${fmtBRL(reserved)}`
+		  + ` | Faltante total: ${missTotalTxt} | ${monthGapTxt} | Status mês: ${statusMonth}`
+		  + ` | Ativa: ${g.active?"Sim":"Não"} | Barra: ${g.showInStrip?"Sim":"Não"}${g.note?` | Obs: ${g.note}`:""}`
+		);
+	  }
+	  lines.push("");
+	}
 
   lines.push("ENTRADAS EXTRAS (mês)");
   const incomes=[...db.incomes].filter(x=>monthKey(x.date)===month).sort((a,b)=>a.date.localeCompare(b.date));
@@ -1845,7 +1911,7 @@ btnDelete.addEventListener("click", ()=>{
   if(!key) return;
   db[key]=db[key].filter(x=>x.id!==id);
   dlg.close();
-  setState("Alterado","warn"); saveDB(); renderAll();
+  setState("Alterado","warn"); setJsonDirty(true); saveDB(); renderAll();
 });
 
 dlgForm.addEventListener("submit",(ev)=>{
@@ -1960,7 +2026,7 @@ dlgForm.addEventListener("submit",(ev)=>{
   }
 
   dlg.close();
-  setState("Alterado","warn"); saveDB(); renderAll();
+  setState("Alterado","warn"); setJsonDirty(true); saveDB(); renderAll();
 });
 
 /* ---------- Table render + click handlers ---------- */
@@ -2034,7 +2100,7 @@ function buildGoalStripHTML(cur, g){
   const st = goalStatusMonth(cur, miss, target);
 
   const name = esc(g.name || "(sem nome)");
-  const missingTxt = esc(fmtBRL(miss));
+  const missingTxt = esc(fmtBRL(st.monthGap)); // agora é o faltante real do mês
   const activePill = g.active ? `<span class="pill good" title="Ativa">Ativa</span>` : `<span class="pill warn" title="Inativa">Inativa</span>`;
 
   if(st.key==="nocost"){
@@ -2055,9 +2121,10 @@ function buildGoalStripHTML(cur, g){
   const missPillKind = (st.key==="hit") ? "good" : (st.key==="possible" ? "good" : "warn");
   const missTitle = (st.key==="hit") ? "Meta atingida" : "Faltante total para atingir a meta";
 
-  const suffix = (st.key==="hit") ? "ok" : (st.key==="possible" ? "" : "faltam");
-  const missText = suffix ? `${missingTxt} ${suffix}` : `${missingTxt}`;
-
+  const suffix = (st.key==="hit") ? "ok" : (st.key==="possible" ? "cobre" : "faltam");
+  const missText = (st.key==="hit") ? "ok"
+  : (st.key==="possible") ? `Cobre`
+  : `${missingTxt} faltam`;
   return `
     <span class="swapWrap">
       <span>Meta:</span>
@@ -2123,8 +2190,8 @@ function renderGoalStrip(cur){
   for(const g of goalsToUse){
     const target=bi(g.targetCents);
     if(target>0n) hasCost=true;
-    const reserved=cur.reservedByGoal.get(g.id)||0n;
-    const miss = target>reserved ? (target-reserved) : 0n;
+    const reserved = cur.reservedByGoal.get(g.id) || 0n;
+	const miss = target > reserved ? (target - reserved) : 0n;
     if(miss>0n) hasMissing=true;
 
     if(target>0n && miss>0n){
@@ -2160,15 +2227,15 @@ function renderGoals(cur){
     const st = goalStatusMonth(cur, miss, target);
 
     let missLine="";
-    if(st.key==="nocost"){
-      missLine = `<div class="noteLine warn" title="Defina o custo para calcular.">Defina o custo</div>`;
-    }else if(miss===0n){
-      missLine = `<div class="noteLine good" title="Meta completa.">Meta completa</div>`;
-    }else if(st.key==="possible"){
-      missLine = `<div class="noteLine good" title="O saldo do mês cobre o faltante total.">Cobre com saldo do mês</div>`;
-    }else{
-      missLine = `<div class="noteLine bad" title="Quanto ainda faltaria mesmo usando todo o saldo do mês.">No mês: ${esc(fmtBRL(st.monthGap))}</div>`;
-    }
+	if(st.key==="nocost"){
+	  missLine = `<div class="noteLine warn" title="Defina o custo para calcular.">Defina o custo</div>`;
+	}else if(miss===0n){
+	  missLine = `<div class="noteLine good" title="Meta completa.">Meta completa</div>`;
+	}else if(st.key==="possible"){
+	  missLine = `<div class="noteLine good" title="Total faltante (meta - reservado). O saldo do mês cobre.">Total: ${esc(fmtBRL(miss))} (Cobre)</div>`;
+	}else{
+	  missLine = `<div class="noteLine bad" title="Total faltante (meta - reservado).">Total: ${esc(fmtBRL(miss))}</div>`;
+	}
 
     const featuredLine = g.showInStrip ? `<div class="noteLine good" title="Marcada para aparecer na barra Meta.">★ Barra Meta</div>` : "";
     const noteLine = g.note ? `<div class="noteLine">${esc(g.note)}</div>` : "";
@@ -2182,9 +2249,12 @@ function renderGoals(cur){
         <td class="right">${moneyCellHTML("Custo", target)}</td>
         <td class="right">${moneyCellHTML("Reservado", reserved)}</td>
         <td class="right">
-          ${moneyCellHTML("Faltante (total)", miss)}
-          ${missLine}
-        </td>
+		  ${st.key==="nocost"
+			? `<span class="muted">—</span>`
+			: moneyCellHTML("Faltante (além do Saldo Restante do mês)", st.monthGap)
+		  }
+		  ${missLine}
+		</td>
         <td class="statusCell"><span class="${st.pill}" title="${esc(st.title)}">${esc(st.text)}</span></td>
         <td class="activeCell"><span class="pill ${g.active?"good":"warn"}" title="${g.active?"Sim":"Não"}">${g.active?"Sim":"Não"}</span></td>
         <td class="right">${actionButtonsHTML("goal", g.id)}</td>
@@ -2299,7 +2369,7 @@ document.body.addEventListener("click",(ev)=>{
     const key=map[del];
     if(!key) return;
     db[key]=db[key].filter(x=>x.id!==id);
-    setState("Alterado","warn"); saveDB(); renderAll();
+    setState("Alterado","warn"); setJsonDirty(true); saveDB(); renderAll();
   }
 });
 
@@ -2816,7 +2886,7 @@ function renderInsights(cur){
   const outKind = outPct>=alert ? "bad" : (outPct>=alert*0.85 ? "warn" : "good");
 
   const remainKind = cur.remain>=0n ? "good" : "bad";
-  const remainTitle = cur.remain>=0n ? "Possível guardar" : "Vai faltar";
+  const remainTitle = cur.remain>=0n ? "Disponível para reserva" : "Saldo negativo";
 
   /* Cards principais */
   const statsHTML = `
@@ -2932,6 +3002,12 @@ function renderKpis(cur){
 
   $("kpiOut").textContent = fmtBRL(cur.outDespesas);
   $("kpiRes").textContent = fmtBRL(cur.outResTotal);
+  
+  const elBal = $("kpiResBalHint");
+	if(elBal){
+	  elBal.textContent = `Acumulado (reservas): ${fmtBRL(cur.resBalance)}`;
+	  elBal.title = `Saldo inicial: ${fmtBRL(bi(db.profile.resStartCents))}`;
+}
 
   const resHint = (cur.outResNoImpact>0n)
     ? `impacta ${fmtBRL(cur.outResImpact)} • não impacta ${fmtBRL(cur.outResNoImpact)}`
@@ -2941,7 +3017,7 @@ function renderKpis(cur){
   $("kpiRemain").textContent = fmtBRL(cur.remain);
   $("kpiRemain").classList.toggle("neg", cur.remain<0n);
   $("kpiRemain").classList.toggle("pos", cur.remain>=0n);
-  $("kpiRemainHint").textContent = (cur.remain>=0n) ? "possível guardar" : "vai faltar";
+  $("kpiRemainHint").textContent = (cur.remain>=0n) ? "Disponível para reserva" : "Saldo negativo";
 }
 
 /* ---------- Charts orchestration ---------- */
@@ -2985,6 +3061,7 @@ function setupResizeObservers(){
 function renderAll(){
   if(!/^\d{4}-\d{2}$/.test(db.state.month||"")) db.state.month=thisMonth();
   loadProfileUI();
+  updateJsonSourceLine();
 
   const cur=compute(db.state.month);
 
@@ -3025,6 +3102,7 @@ function init(){
   if(!monthPick.value) monthPick.value=db.state.month;
 
   renderAll();
+  updateJsonSourceLine();
 }
 init();
 </script>
